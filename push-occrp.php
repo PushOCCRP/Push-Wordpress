@@ -37,33 +37,50 @@ function my_insert_rewrite_rules( $rules )
 // Adding the id var so that WP recognizes it
 function my_insert_query_vars( $vars )
 {
-    array_push($vars, 'push', 'myargument');
+    array_push($vars, 'type', 'q');
     return $vars;
 }
 
 function push_endpoint_data() {
-	$query = get_query_var("push");
+	$type = get_query_var("type");
 	
-	if(!$query) {
+	if(!$type) {
 		return;
 	}
- 
-    $response = array();
-    $response['start_date'] = null;
-    $response['end_date'] = null;
-    $response['total_items'] = 0;
-    $response['total_pages'] = 1;
-    $response['page'] = 1;
-    $response['results'] = array();
-    
-    $args = array(
-        'post_type'      => 'post',
-        'posts_per_page' => 10,
-    );
+
+    if($type == 'search' && !get_query_var('q')) {
+        json_error(1001,  "No query submitted for search." );
+    } else {
+        $query = get_query_var('q');
+    }
+     
+    $args = array();
+
+    switch ($type) {
+        case 'articles':
+            $args = arguments_for_articles();
+            break;
+        case 'search':
+            $args = arguments_for_search($query);
+            break;
+        }
  
     $post_query = new WP_Query( $args );
  
+    $response = array();
+    $response['results'] = array();
+    $response['start_date'] = null;
+    $response['end_date'] = null;
+    $response['total_items'] = 0;
+    $response['total_pages'] = 0;
+    $response['page'] = 0;
+
     if ( $post_query->have_posts() ) {
+        $response['total_items'] = $post_query->found_posts;
+        $response['total_pages'] = $post_query->max_num_pages + 1;
+        $response['page'] = 1;
+        
+
 		while ( $post_query->have_posts() ) {
 			$post_query->the_post();
 			$post_data = array();
@@ -87,3 +104,40 @@ function push_endpoint_data() {
     
     wp_send_json( $response );
 }
+
+function arguments_for_articles($number_of_articles = 10) {
+    return array(
+        'post_type'      => 'post',
+        'posts_per_page' => 10,
+    );
+}
+
+function arguments_for_search($query, $number_of_articles = 10) {
+    return array(
+        's' => $query,
+        'posts_per_page' => $number_of_articles,
+    );
+}
+
+function json_error($code = '', $message = '') {
+    $error = array(
+        'type'       => 'error',
+        'error_code' => $code,
+        'message'    => $message,
+        );
+    wp_send_json( $error );
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
