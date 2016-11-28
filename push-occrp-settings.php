@@ -151,6 +151,9 @@ class PushMobileAppSettingsPage
      */
     public function validate_categories( $input )
     {
+        if(!isset($input)){
+            $input = array();
+        }
         // We make a copy of the input so that we can sanitize everything.
         $input = array_map(function($value){
             sanitize_text_field($value);
@@ -210,11 +213,14 @@ class PushMobileAppSettingsPage
     public function validate_sorting( $input )
     {
         $input = sanitize_text_field($input);
-        $sorting_type = get_option('sorting_type');
+        $sorting_type = get_option('push_app_option_name');
+
+        var_dump($sorting_type);
 
         // Validation
         $valid_options = ['categories', 'post_types'];
-        if(!array_search($input, $valid_options)){
+        
+        if($valid_options[array_search($input, $valid_options)] !== $input){
             return $sorting_type;
         }
 
@@ -227,7 +233,6 @@ class PushMobileAppSettingsPage
             
             $sorting_type[$current_lang] = $input;
         }
-
         // Validation should run against on all the inputs
         return $sorting_type;
     }

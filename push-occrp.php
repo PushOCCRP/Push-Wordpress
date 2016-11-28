@@ -111,18 +111,24 @@ function push_endpoint_data() {
 		$response['categories'] = $post_types;
 
         $option = get_option('push_app_option_name');
-
+		
 		// WPML
 		if ( function_exists('icl_object_id') ) {
 			$current_lang = apply_filters( 'wpml_current_language', NULL );
-			if(array_key_exists($current_lang, $option)){
+			if(is_array($option) && array_key_exists($current_lang, $option)){
 				$option = $option[$current_lang];			
 			}
+
+			if(!isset($option)){
+				$option = array();
+			}
+
 		}
+
 
 		if($option == 'categories'){
 			foreach($post_types as $category){
-				
+						
 				if(is_category_excluded($category) == true){
 					$response['results'][$category] = array();
 				} else {
@@ -137,6 +143,11 @@ function push_endpoint_data() {
 					$args = arguments_for_articles(PushMobileAppHelpers::post_types(), $category_object);
 					$post_items = articles_for_args($args);
 					
+				// 										var_dump($args);
+				// exit;		
+
+
+
 					$response['results'][$category] = $post_items['results'];
 				}
 			}
@@ -176,6 +187,10 @@ function categories() {
 		if(is_array($return_type) && array_key_exists($current_lang, $return_type)){
 			$return_type = $return_type[$current_lang];			
 		}
+		if(!isset($return_type)){
+			$return_type = array();
+		}
+
 	}
 
 	if($return_type == 'categories'){
@@ -221,6 +236,11 @@ function categories() {
 				if(is_array($disabled_post_types) && array_key_exists($current_lang, $disabled_post_types)){
 					$disabled_post_types = $disabled_post_types[$current_lang];			
 				}
+
+				if(!isset($disabled_post_types)){
+					$disabled_post_types = array();
+				}
+
 			}
 
 			if(is_string($disabled_post_types)){
@@ -331,6 +351,10 @@ function arguments_for_articles($post_types = 'post', $categories = null, $numbe
 			if( is_array($disabled_post_types) && array_key_exists($current_lang, $disabled_post_types)){
 				$disabled_post_types = $disabled_post_types[$current_lang];			
 			}
+			
+			if(!isset($disabled_post_types)){
+					$disabled_post_types = array();
+			}
 		}
 		
 		if(!is_string($disabled_post_types)){
@@ -393,6 +417,10 @@ function categories_to_exclude(){
 		if( is_array($disabled_categories) && array_key_exists($current_lang, $disabled_categories)){
 			$disabled_categories = $disabled_categories[$current_lang];			
 		}
+
+		if(!isset($disabled_categories)){
+			$disabled_categories = array();
+		}
 	}
 
 	if(is_string($disabled_categories)){
@@ -414,6 +442,10 @@ function is_category_excluded($category_name) {
 	    $current_lang = apply_filters( 'wpml_current_language', NULL );
 		if( is_array($disabled_categories) && array_key_exists($current_lang, $disabled_categories)){
 			$disabled_categories = $disabled_categories[$current_lang];			
+		}
+
+		if(!isset($disabled_categories)){
+			$disabled_categories = array();
 		}
 	}
 
@@ -439,6 +471,10 @@ function is_post_type_excluded($post_type) {
 	    $current_lang = apply_filters( 'wpml_current_language', NULL );
 		if( is_array($disabled_post_types) && array_key_exists($current_lang, $disabled_post_types)){
 			$disabled_post_types = $disabled_post_types[$current_lang];			
+		}
+
+		if(!isset($disabled_post_types)){
+			$disabled_post_types = array();
 		}
 	}
 
