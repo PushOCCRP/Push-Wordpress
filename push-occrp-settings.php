@@ -1,5 +1,6 @@
 <?php
 
+
 require 'push-occrp-helpers.php';
 
 class PushMobileAppSettingsPage
@@ -43,14 +44,27 @@ class PushMobileAppSettingsPage
         ?>
         <div class="wrap">
             <h1>Push Mobile App</h1>
-            <form method="post" action="options.php">
             <?php
-                // This prints out all hidden setting fields
-                settings_fields( 'push_app_mobile_categories_option_group' );
-                do_settings_sections( 'push-mobile-app-admin' );
-                submit_button();
+                // WPML: if the "all languages" choice is currently chosen, don't put any settings in.
+                // This will be added at some point, but right now it's a lot of extra work
+                if ( function_exists('icl_object_id') && apply_filters( 'wpml_current_language', NULL ) == 'all') {
+                    ?>
+                    Push mobile app settings not available if 'All Languages' is chosen. Please change to a single language on the menu at the top of the escreen to edit the settings.
+                    <?php
+                    return;
+                } else {
             ?>
-            </form>
+                    <form method="post" action="options.php">
+                    <?php
+                        // This prints out all hidden setting fields
+                        settings_fields( 'push_app_mobile_categories_option_group' );
+                        do_settings_sections( 'push-mobile-app-admin' );
+                        submit_button();
+                    ?>
+                    </form>
+            <?php
+                } 
+            ?>
         </div>
         <?php
     }
@@ -59,11 +73,12 @@ class PushMobileAppSettingsPage
      * Register and add settings
      */
     public function page_init()
-    {        
+    {       
+         
         register_setting(
             'push_app_mobile_categories_option_group', // Option group
-            'push_app_option_name' // Option name
-             // Sanitize
+            'push_app_option_name', // Option name
+            array( $this, 'validate_sorting' ) // Sanitize
         );
 
         register_setting(
@@ -80,7 +95,7 @@ class PushMobileAppSettingsPage
 
         add_settings_section(
             'setting_section_id', // ID
-            'My Custom Settings', // Title
+            'Available Post Types and Categories', // Title
             array( $this, 'print_section_info' ), // Callback
             'push-mobile-app-admin' // Page
         );  
@@ -136,9 +151,25 @@ class PushMobileAppSettingsPage
      */
     public function validate_categories( $input )
     {
-        var_dump($input);
-        // Validation should run against on all the inputs
-        return $input;
+        // We make a copy of the input so that we can sanitize everything.
+        $input = array_map(function($value){
+            sanitize_text_field($value);
+        }, $input);
+
+        $disabled_categories = get_option('push_app_disabled_categories');
+
+        if ( function_exists('icl_object_id')){
+            $current_lang = apply_filters( 'wpml_current_language', NULL );
+        
+             // Validation should run against on all the inputs
+            if(is_array($disabled_categories) === false){
+                $disabled_categories = array();            
+            }
+        
+            $disabled_categories[$current_lang] = $input;
+        }
+        
+        return $disabled_categories;
     }
 
     /**
@@ -148,16 +179,75 @@ class PushMobileAppSettingsPage
      */
     public function validate_post_types( $input )
     {
+        // We make a copy of the input so that we can sanitize everything.
+        $input = array_map(function($value){
+            sanitize_text_field($value);
+        }, $input);
+
+        $disabled_post_types = get_option('push_app_disabled_post_types');
+        
+        if ( function_exists('icl_object_id')){
+            $current_lang = apply_filters( 'wpml_current_language', NULL );
+            
+            // Validation should run against on all the inputs
+            if(is_array($disabled_post_types) === false){
+                $disabled_post_types = array();            
+            }
+            
+            $disabled_post_types[$current_lang] = $input;
+            return $disabled_post_types;
+        }
+
         // Validation should run against on all the inputs
-        return $input;
+        return $disabled_post_types;
     }
+
+    /**
+     * Validate post sorting, whether categories or post_types
+     *
+     * @param array $input Contains all settings fields as array keys
+     */
+    public function validate_sorting( $input )
+    {
+        $input = sanitize_text_field($input);
+        $sorting_type = get_option('sorting_type');
+
+        // Validation
+        $valid_options = ['categories', 'post_types'];
+        if(!array_search($input, $valid_options)){
+            return $sorting_type;
+        }
+
+        if ( function_exists('icl_object_id')){        
+            $current_lang = apply_filters( 'wpml_current_language', NULL );
+            
+            if(is_array($sorting_type) === false){
+                $sorting_type = array();            
+            }
+            
+            $sorting_type[$current_lang] = $input;
+        }
+
+        // Validation should run against on all the inputs
+        return $sorting_type;
+    }
+
 
     /** 
      * Print the Section text
      */
     public function print_section_info()
     {
-//        print 'Enter your settings below:';
+        if ( function_exists('icl_object_id') ) {
+            $languages = $languages = apply_filters( 'wpml_active_languages', NULL, 'orderby=id&order=desc' );
+            $current_lang = apply_filters( 'wpml_current_language', NULL );
+        
+            if(!empty($languages) && $current_lang != null && array_key_exists($current_lang, $languages)){
+                $language = $languages[$current_lang];
+                $translated_name = apply_filters( 'wpml_translated_language_name', NULL, $language['code'], 'en' );
+                print "Settings for " . $language['native_name'] . " (" . $translated_name . ")";
+            }
+        }
     }
 
     /** 
@@ -169,6 +259,21 @@ class PushMobileAppSettingsPage
 
         $categories = PushMobileAppHelpers::categories();
         $disabled_categories = get_option('push_app_disabled_categories');
+
+        // WPML Languages
+        if( function_exists('icl_object_id') ) {
+            $current_lang = apply_filters( 'wpml_current_language', NULL );
+
+            if(!is_array($disabled_categories)){
+                $disabled_categories = array();
+            }
+
+            if(!array_key_exists($current_lang, $disabled_categories)){
+                $disabled_categories[$current_lang] = array();
+            }
+
+            $disabled_categories = $disabled_categories[$current_lang];
+        }
 
         foreach($categories as $category){
             $checked = "";
@@ -196,6 +301,21 @@ class PushMobileAppSettingsPage
 
         $disabled_post_types = get_option('push_app_disabled_post_types');
 
+        // WPML Languages
+        if( function_exists('icl_object_id') ) {
+            $current_lang = apply_filters( 'wpml_current_language', NULL );
+
+            if(!is_array($disabled_post_types)){
+                $disabled_post_types = array();
+            }
+
+            if(!array_key_exists($current_lang, $disabled_post_types)){
+                $disabled_post_types[$current_lang] = array();
+            }
+
+            $disabled_post_types = $disabled_post_types[$current_lang];
+        }
+
         foreach($post_types as $post_type){
             $checked = "";
             if(isset($disabled_post_types) && $disabled_post_types != false && array_key_exists($post_type, $disabled_post_types)){
@@ -215,9 +335,24 @@ class PushMobileAppSettingsPage
     public function sort_stories_by_callback()
     {
         $option = get_option('push_app_option_name');
+        if(function_exists('icl_object_id')) {
+            $current_lang = apply_filters( 'wpml_current_language', NULL );
+
+            if(!is_array($option)){
+                $option = array();
+            }
+
+            if(!array_key_exists($current_lang, $option)){
+                $option[$current_lang] = array();
+            }
+            
+            $option = $option[$current_lang];
+        }
+        
         if(count($option) == 0){
             $option = '';
         }
+
         printf('<select name="push_app_option_name">');
         if($option == 'categories'){
             printf('<option id="title" name="push_app_option_name" value="categories" selected>Categories</option>');

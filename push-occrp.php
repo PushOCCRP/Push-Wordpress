@@ -3,7 +3,7 @@
  * Plugin Name: Push Occrp
  * Plugin URI:  https://github.com/pushoccrrp
  * Description: An export plugin for the Push mobile app ecosystem.
- * Version:	1.5
+ * Version:	1.5.1
  * Author:	Christopher Guess
  * Author URI:  https://www.tryandguess.com/
  * License:
@@ -50,6 +50,8 @@ function push_endpoint_data() {
 		return;
 	}
 
+	$categorized = false;
+
 	// Set up the variables properly
     if($type == 'search' && !get_query_var('q')) {
         json_error(1001,  "No query submitted for search." );
@@ -65,7 +67,7 @@ function push_endpoint_data() {
 
     if($type == 'articles' && get_query_var('post_types')){
     	$post_types = explode(',', get_query_var('post_types'));
-    	if(get_query_var('categorized')){
+    	if(get_query_var('categorized') == 'true'){
     		$categorized = true;
     	}
     } else {
@@ -108,12 +110,51 @@ function push_endpoint_data() {
 		$response['results'] = array();
 		$response['categories'] = $post_types;
 
-		foreach($post_types as $post_type){
-			$args = arguments_for_articles($post_type);
-			$post_items = articles_for_args($args);
+        $option = get_option('push_app_option_name');
 
-			$response['results'][$post_type] = $post_items['results'];
+		// WPML
+		if ( function_exists('icl_object_id') ) {
+			$current_lang = apply_filters( 'wpml_current_language', NULL );
+			if(array_key_exists($current_lang, $option)){
+				$option = $option[$current_lang];			
+			}
 		}
+
+		if($option == 'categories'){
+			foreach($post_types as $category){
+				
+				if(is_category_excluded($category) == true){
+					$response['results'][$category] = array();
+				} else {
+					$category_object = PushMobileAppHelpers::category_for_name($category);
+					if($category_object == null){
+						$error_array = array();
+						$error_array['error'] = 'unknown category "'.$category.'" in params';
+						wp_send_json($error_array);
+						return;
+					}
+
+					$args = arguments_for_articles(PushMobileAppHelpers::post_types(), $category_object);
+					$post_items = articles_for_args($args);
+					
+					$response['results'][$category] = $post_items['results'];
+				}
+			}
+		} elseif($option == 'post_types'){
+
+			foreach($post_types as $post_type){
+				if(is_post_type_excluded($post_type) == true){
+					$response['results'][$post_type] = array();
+				} else {
+					$args = arguments_for_articles($post_type);
+					$post_items = articles_for_args($args);
+
+					$response['results'][$post_type] = $post_items['results'];
+				}
+			}
+
+		}
+
 
 		wp_send_json($response);
 	}
@@ -122,11 +163,39 @@ function push_endpoint_data() {
 // This retreives a list of categories, depending on the settings set.
 function categories() {
 	$return_type = get_option('push_app_option_name');
+	
+	// Defaults to 'categories'
+	if((is_string($return_type) && strlen($return_type) == 0) || !isset($return_type)){
+		$return_type = 'categories';
+	}
+
+	// WPML
+	if ( function_exists('icl_object_id') ) {
+		$current_lang = apply_filters( 'wpml_current_language', NULL );
+		
+		if(is_array($return_type) && array_key_exists($current_lang, $return_type)){
+			$return_type = $return_type[$current_lang];			
+		}
+	}
+
 	if($return_type == 'categories'){
 		$categories = PushMobileAppHelpers::categories();
 
 		$cleaned_categories = array_filter($categories, function ($category) {
 			$disabled_categories = get_option('push_app_disabled_categories', "");
+
+			// WPML
+			if ( function_exists('icl_object_id') ) {
+				$current_lang = apply_filters( 'wpml_current_language', NULL );
+				if(is_array($disabled_categories) && array_key_exists($current_lang, $disabled_categories)){
+					$disabled_categories = $disabled_categories[$current_lang];			
+				}
+
+				if(!isset($disabled_categories)){
+					$disabled_categories = array();
+				}
+			}
+
 			if(is_string($disabled_categories)){
 				return true;
 			}
@@ -146,6 +215,14 @@ function categories() {
 
 		$cleaned_post_types = array_filter($post_types, function ($post_type) {
 			$disabled_post_types = get_option('push_app_disabled_post_types', "");
+			// WPML
+			if ( function_exists('icl_object_id') ) {
+				$current_lang = apply_filters( 'wpml_current_language', NULL );
+				if(is_array($disabled_post_types) && array_key_exists($current_lang, $disabled_post_types)){
+					$disabled_post_types = $disabled_post_types[$current_lang];			
+				}
+			}
+
 			if(is_string($disabled_post_types)){
 				return true;
 			}
@@ -222,8 +299,8 @@ function articles_for_args($args) {
             $post_data["image_urls"] = array();
 	    	$post_data["images"] = array();
 
-			if (has_post_thumbnail( $post->ID ) ){
-				$feat_image = wp_get_attachment_url( get_post_thumbnail_id($post->ID) );
+			if (has_post_thumbnail( get_the_id() ) ){
+				$feat_image = wp_get_attachment_url( get_post_thumbnail_id(get_the_id()) );
 				$post_data["images"][] = array("url" => $feat_image, "caption" => "", "width" => "", "height" => "", "byline" => "");
 			}
 
@@ -242,10 +319,42 @@ function articles_for_args($args) {
 	return null;
 }
 
-function arguments_for_articles($post_types = 'post', $number_of_articles = 10) {
+function arguments_for_articles($post_types = 'post', $categories = null, $number_of_articles = 10) {
+
+	// Make sure you don't return any post_types that are restricted
+	if(is_array($post_types)){
+	    $disabled_post_types = get_option('push_app_disabled_post_types');
+
+		// WPML
+		if ( function_exists('icl_object_id') ) {
+			$current_lang = apply_filters( 'wpml_current_language', NULL );
+			if( is_array($disabled_post_types) && array_key_exists($current_lang, $disabled_post_types)){
+				$disabled_post_types = $disabled_post_types[$current_lang];			
+			}
+		}
+		
+		if(!is_string($disabled_post_types)){
+			$post_types = array_diff($post_types, array_keys($disabled_post_types));
+		}
+	}
+
+	if($categories == null){
+		$categories = categories_to_exclude();
+	} else {
+		if(!is_array($categories)){
+			$temp_categories = array();
+			array_push($temp_categories, $categories);
+			$categories = $temp_categories;
+		}
+		$categories = array_map(function($category){
+			return $category->term_id;
+		}, $categories);
+	}
+
+
     return array(
         'post_type'      => $post_types,
-        'cat' 			 => categories_to_exclude(),
+        'cat' 			 => $categories,
         'posts_per_page' => 10,
     );
 }
@@ -275,12 +384,76 @@ function json_error($code = '', $message = '') {
     wp_send_json( $error );
 }
 
-function categories_to_exclude(){
-	//return('');
+function categories_to_exclude(){	
+	$disabled_categories = get_option('push_app_disabled_categories', "");
+    
+	// WPML
+	if ( function_exists('icl_object_id') ) {
+	    $current_lang = apply_filters( 'wpml_current_language', NULL );
+		if( is_array($disabled_categories) && array_key_exists($current_lang, $disabled_categories)){
+			$disabled_categories = $disabled_categories[$current_lang];			
+		}
+	}
 
-    //return('-202,-157');
+	if(is_string($disabled_categories)){
+		return '';
+	}
+
+	$return_string = join(',', array_map(function($disabled_category){
+		return '-' . $disabled_category;
+	}, array_keys($disabled_categories)));
+
+	return $return_string;
 }
 
+function is_category_excluded($category_name) {
+	$disabled_categories = get_option('push_app_disabled_categories', "");
+
+	// WPML
+	if ( function_exists('icl_object_id') ) {
+	    $current_lang = apply_filters( 'wpml_current_language', NULL );
+		if( is_array($disabled_categories) && array_key_exists($current_lang, $disabled_categories)){
+			$disabled_categories = $disabled_categories[$current_lang];			
+		}
+	}
+
+	if(is_string($disabled_categories)){
+		return false;
+	}
+
+	foreach(array_keys($disabled_categories) as $disabled_category_id){
+		$disabled_category = get_the_category_by_ID($disabled_category_id);
+		if($disabled_category == $category_name){ 
+			return true;
+		}
+	}
+
+	return false;
+}
+
+function is_post_type_excluded($post_type) {
+	$disabled_post_types = get_option('push_app_disabled_post_types', '');
+
+	// WPML
+	if ( function_exists('icl_object_id') ) {
+	    $current_lang = apply_filters( 'wpml_current_language', NULL );
+		if( is_array($disabled_post_types) && array_key_exists($current_lang, $disabled_post_types)){
+			$disabled_post_types = $disabled_post_types[$current_lang];			
+		}
+	}
+
+	if(is_string($disabled_post_types)){
+		return false;
+	}
+
+	foreach(array_keys($disabled_post_types) as $disabled_post_type){
+		if($disabled_post_type == $post_type){ 
+			return true;
+		}
+	}
+
+	return false;
+}
 
 
 
