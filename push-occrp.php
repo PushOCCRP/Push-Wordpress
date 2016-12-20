@@ -296,15 +296,15 @@ function categories() {
 
 // Generic getting format, set up the args first then this creates the entire final response
 function articles_response($args) {
-    $response = default_response();
+  $response = default_response();
 
 	$post_items = articles_for_args($args);
 
 	$response['total_items'] = $post_items['total_items'];
 	$response['total_pages'] = $post_items['total_pages'];
-    $response['page'] = 1;
+  $response['page'] = 1;
 
-    $response['results'] = $post_items['results'];
+  $response['results'] = $post_items['results'];
 
 	return $response;
 }
@@ -372,7 +372,7 @@ function articles_for_args($args) {
 	return null;
 }
 
-function arguments_for_articles($post_types = 'post', $categories = null, $number_of_articles = 10) {
+function arguments_for_articles($post_types = ['post'], $categories = null, $number_of_articles = 10) {
 
 	// Make sure you don't return any post_types that are restricted
 	if(is_array($post_types)){
@@ -417,12 +417,12 @@ function arguments_for_articles($post_types = 'post', $categories = null, $numbe
 		}, $categories);
 	}
 
-
-    return array(
-        'post_type'      => $post_types,
-        'cat' 			 => $categories,
-        'posts_per_page' => 10,
-    );
+	return array(
+			'post_type'      => $post_types,
+			'cat' 			 		 => $categories,
+			'posts_per_page' => $number_of_articles,
+			'ignore_sticky_posts' => true,
+	);
 }
 
 function arguments_for_article($article_id) {
