@@ -3,7 +3,7 @@
  * Plugin Name: Push Occrp
  * Plugin URI:  https://github.com/pushoccrrp
  * Description: An export plugin for the Push mobile app ecosystem.
- * Version:	1.5.1
+ * Version:	1.5.2
  * Author:	Christopher Guess
  * Author URI:  https://www.tryandguess.com/
  * License:
@@ -123,8 +123,16 @@ function push_endpoint_data() {
 				$option = array();
 			}
 
-		}
+		} elseif( defined( 'QTRANSLATE_FILE') ) {
+			$current_lang = qtranxf_getLanguage();
+			if(is_array($option) && array_key_exists($current_lang, $option)){
+				$option = $option[$current_lang];			
+			}
 
+			if(!isset($option)){
+				$option = array();
+			}
+		}
 
 		if($option == 'categories'){
 			foreach($post_types as $category){
@@ -190,7 +198,15 @@ function categories() {
 		if(!isset($return_type)){
 			$return_type = array();
 		}
-
+	} elseif( defined( 'QTRANSLATE_FILE') ) {
+		$current_lang = qtranxf_getLanguage();
+		
+		if(is_array($return_type) && array_key_exists($current_lang, $return_type)){
+			$return_type = $return_type[$current_lang];			
+		}
+		if(!isset($return_type)){
+			$return_type = array();
+		}
 	}
 
 	if($return_type == 'categories'){
@@ -202,6 +218,15 @@ function categories() {
 			// WPML
 			if ( function_exists('icl_object_id') ) {
 				$current_lang = apply_filters( 'wpml_current_language', NULL );
+				if(is_array($disabled_categories) && array_key_exists($current_lang, $disabled_categories)){
+					$disabled_categories = $disabled_categories[$current_lang];			
+				}
+
+				if(!isset($disabled_categories)){
+					$disabled_categories = array();
+				}
+			} elseif( defined( 'QTRANSLATE_FILE') ) {
+				$current_lang = qtranxf_getLanguage();
 				if(is_array($disabled_categories) && array_key_exists($current_lang, $disabled_categories)){
 					$disabled_categories = $disabled_categories[$current_lang];			
 				}
@@ -240,7 +265,15 @@ function categories() {
 				if(!isset($disabled_post_types)){
 					$disabled_post_types = array();
 				}
+			} elseif( defined( 'QTRANSLATE_FILE') ) {
+				$current_lang = qtranxf_getLanguage();
+				if(is_array($disabled_post_types) && array_key_exists($current_lang, $disabled_post_types)){
+					$disabled_post_types = $disabled_post_types[$current_lang];			
+				}
 
+				if(!isset($disabled_post_types)){
+					$disabled_post_types = array();
+				}
 			}
 
 			if(is_string($disabled_post_types)){
@@ -355,6 +388,15 @@ function arguments_for_articles($post_types = 'post', $categories = null, $numbe
 			if(!isset($disabled_post_types)){
 					$disabled_post_types = array();
 			}
+		} elseif( defined( 'QTRANSLATE_FILE') ) {
+			$current_lang = qtranxf_getLanguage();
+			if( is_array($disabled_post_types) && array_key_exists($current_lang, $disabled_post_types)){
+				$disabled_post_types = $disabled_post_types[$current_lang];			
+			}
+			
+			if(!isset($disabled_post_types)){
+					$disabled_post_types = array();
+			}
 		}
 		
 		if(!is_string($disabled_post_types)){
@@ -421,6 +463,15 @@ function categories_to_exclude(){
 		if(!isset($disabled_categories)){
 			$disabled_categories = array();
 		}
+	} elseif( defined( 'QTRANSLATE_FILE') ) {
+		$current_lang = qtranxf_getLanguage();
+		if( is_array($disabled_categories) && array_key_exists($current_lang, $disabled_categories)){
+			$disabled_categories = $disabled_categories[$current_lang];			
+		}
+
+		if(!isset($disabled_categories)){
+			$disabled_categories = array();
+		}
 	}
 
 	if(is_string($disabled_categories)){
@@ -440,6 +491,15 @@ function is_category_excluded($category_name) {
 	// WPML
 	if ( function_exists('icl_object_id') ) {
 	    $current_lang = apply_filters( 'wpml_current_language', NULL );
+		if( is_array($disabled_categories) && array_key_exists($current_lang, $disabled_categories)){
+			$disabled_categories = $disabled_categories[$current_lang];			
+		}
+
+		if(!isset($disabled_categories)){
+			$disabled_categories = array();
+		}
+	} elseif( defined( 'QTRANSLATE_FILE') ) {
+		$current_lang = qtranxf_getLanguage();
 		if( is_array($disabled_categories) && array_key_exists($current_lang, $disabled_categories)){
 			$disabled_categories = $disabled_categories[$current_lang];			
 		}
@@ -469,6 +529,15 @@ function is_post_type_excluded($post_type) {
 	// WPML
 	if ( function_exists('icl_object_id') ) {
 	    $current_lang = apply_filters( 'wpml_current_language', NULL );
+		if( is_array($disabled_post_types) && array_key_exists($current_lang, $disabled_post_types)){
+			$disabled_post_types = $disabled_post_types[$current_lang];			
+		}
+
+		if(!isset($disabled_post_types)){
+			$disabled_post_types = array();
+		}
+	} elseif( defined( 'QTRANSLATE_FILE') ) {
+		$current_lang = qtranxf_getLanguage();
 		if( is_array($disabled_post_types) && array_key_exists($current_lang, $disabled_post_types)){
 			$disabled_post_types = $disabled_post_types[$current_lang];			
 		}

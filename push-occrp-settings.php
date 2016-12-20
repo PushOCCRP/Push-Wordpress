@@ -38,7 +38,7 @@ class PushMobileAppSettingsPage
      * Options page callback
      */
     public function create_admin_page()
-    {
+    {        
         // Set class property
         $this->options = get_option( 'disabled_categories' );
         ?>
@@ -48,23 +48,20 @@ class PushMobileAppSettingsPage
                 // WPML: if the "all languages" choice is currently chosen, don't put any settings in.
                 // This will be added at some point, but right now it's a lot of extra work
                 if ( function_exists('icl_object_id') && apply_filters( 'wpml_current_language', NULL ) == 'all') {
-                    ?>
-                    Push mobile app settings not available if 'All Languages' is chosen. Please change to a single language on the menu at the top of the escreen to edit the settings.
-                    <?php
-                    return;
-                } else {
+                    printf("Push mobile app settings not available if 'All Languages' is chosen. Please change to a single language on the menu at the top of the screen to edit the settings.");
+                } elseif( defined( 'QTRANSLATE_FILE') )	{
+                    // qTranslateX
+                    printf("Push mobile app settings not available if 'All Languages' is chosen. Please change to a single language on the menu at the top of the screen to edit the settings.");
+                }
             ?>
-                    <form method="post" action="options.php">
-                    <?php
-                        // This prints out all hidden setting fields
-                        settings_fields( 'push_app_mobile_categories_option_group' );
-                        do_settings_sections( 'push-mobile-app-admin' );
-                        submit_button();
-                    ?>
-                    </form>
+            <form method="post" action="options.php">
             <?php
-                } 
-            ?>
+                // This prints out all hidden setting fields
+                settings_fields( 'push_app_mobile_categories_option_group' );
+                do_settings_sections( 'push-mobile-app-admin' );
+                submit_button();
+                ?>
+            </form>
         </div>
         <?php
     }
@@ -73,8 +70,7 @@ class PushMobileAppSettingsPage
      * Register and add settings
      */
     public function page_init()
-    {       
-         
+    {   
         register_setting(
             'push_app_mobile_categories_option_group', // Option group
             'push_app_option_name', // Option name
@@ -151,6 +147,7 @@ class PushMobileAppSettingsPage
      */
     public function validate_categories( $input )
     {
+
         if(!isset($input)){
             $input = array();
         }
@@ -163,6 +160,15 @@ class PushMobileAppSettingsPage
 
         if ( function_exists('icl_object_id')){
             $current_lang = apply_filters( 'wpml_current_language', NULL );
+        
+             // Validation should run against on all the inputs
+            if(is_array($disabled_categories) === false){
+                $disabled_categories = array();            
+            }
+        
+            $disabled_categories[$current_lang] = $input;
+        }  elseif( defined( 'QTRANSLATE_FILE') ) {
+            $current_lang = qtranxf_getLanguage();
         
              // Validation should run against on all the inputs
             if(is_array($disabled_categories) === false){
@@ -199,6 +205,16 @@ class PushMobileAppSettingsPage
             
             $disabled_post_types[$current_lang] = $input;
             return $disabled_post_types;
+        } elseif( defined( 'QTRANSLATE_FILE') ) {
+            $current_lang = qtranxf_getLanguage();
+        
+            // Validation should run against on all the inputs
+            if(is_array($disabled_post_types) === false){
+                $disabled_post_types = array();            
+            }
+            
+            $disabled_post_types[$current_lang] = $input;
+            return $disabled_post_types;
         }
 
         // Validation should run against on all the inputs
@@ -215,8 +231,6 @@ class PushMobileAppSettingsPage
         $input = sanitize_text_field($input);
         $sorting_type = get_option('push_app_option_name');
 
-        var_dump($sorting_type);
-
         // Validation
         $valid_options = ['categories', 'post_types'];
         
@@ -232,7 +246,16 @@ class PushMobileAppSettingsPage
             }
             
             $sorting_type[$current_lang] = $input;
+        } elseif( defined( 'QTRANSLATE_FILE') ) {
+            $current_lang = qtranxf_getLanguage();
+            
+            if(is_array($sorting_type) === false){
+                $sorting_type = array();            
+            }
+            
+            $sorting_type[$current_lang] = $input;
         }
+
         // Validation should run against on all the inputs
         return $sorting_type;
     }
@@ -242,10 +265,19 @@ class PushMobileAppSettingsPage
      * Print the Section text
      */
     public function print_section_info()
-    {
+    {   
         if ( function_exists('icl_object_id') ) {
             $languages = $languages = apply_filters( 'wpml_active_languages', NULL, 'orderby=id&order=desc' );
             $current_lang = apply_filters( 'wpml_current_language', NULL );
+        
+            if(!empty($languages) && $current_lang != null && array_key_exists($current_lang, $languages)){
+                $language = $languages[$current_lang];
+                $translated_name = apply_filters( 'wpml_translated_language_name', NULL, $language['code'], 'en' );
+                print "Settings for " . $language['native_name'] . " (" . $translated_name . ")";
+            }
+        } elseif( defined( 'QTRANSLATE_FILE') ) {
+            $languages = qtranxf_getSortedLanguages();
+            $current_lang = qtranxf_getLanguage();
         
             if(!empty($languages) && $current_lang != null && array_key_exists($current_lang, $languages)){
                 $language = $languages[$current_lang];
@@ -268,6 +300,18 @@ class PushMobileAppSettingsPage
         // WPML Languages
         if( function_exists('icl_object_id') ) {
             $current_lang = apply_filters( 'wpml_current_language', NULL );
+
+            if(!is_array($disabled_categories)){
+                $disabled_categories = array();
+            }
+
+            if(!array_key_exists($current_lang, $disabled_categories)){
+                $disabled_categories[$current_lang] = array();
+            }
+
+            $disabled_categories = $disabled_categories[$current_lang];
+        } elseif( defined( 'QTRANSLATE_FILE') ) {
+            $current_lang = qtranxf_getLanguage();
 
             if(!is_array($disabled_categories)){
                 $disabled_categories = array();
@@ -319,6 +363,18 @@ class PushMobileAppSettingsPage
             }
 
             $disabled_post_types = $disabled_post_types[$current_lang];
+        } elseif( defined( 'QTRANSLATE_FILE') ) {
+            $current_lang = qtranxf_getLanguage();
+
+            if(!is_array($disabled_post_types)){
+                $disabled_post_types = array();
+            }
+
+            if(!array_key_exists($current_lang, $disabled_post_types)){
+                $disabled_post_types[$current_lang] = array();
+            }
+
+            $disabled_post_types = $disabled_post_types[$current_lang];
         }
 
         foreach($post_types as $post_type){
@@ -352,7 +408,20 @@ class PushMobileAppSettingsPage
             }
             
             $option = $option[$current_lang];
+        } elseif( defined( 'QTRANSLATE_FILE') ) {
+            $current_lang = qtranxf_getLanguage();
+
+            if(!is_array($option)){
+                $option = array();
+            }
+
+            if(!array_key_exists($current_lang, $option)){
+                $option[$current_lang] = array();
+            }
+            
+            $option = $option[$current_lang];
         }
+
         
         if(count($option) == 0){
             $option = '';
