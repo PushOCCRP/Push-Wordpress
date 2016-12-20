@@ -276,14 +276,8 @@ class PushMobileAppSettingsPage
                 print "Settings for " . $language['native_name'] . " (" . $translated_name . ")";
             }
         } elseif( defined( 'QTRANSLATE_FILE') ) {
-            $languages = qtranxf_getSortedLanguages();
-            $current_lang = qtranxf_getLanguage();
-        
-            if(!empty($languages) && $current_lang != null && array_key_exists($current_lang, $languages)){
-                $language = $languages[$current_lang];
-                $translated_name = apply_filters( 'wpml_translated_language_name', NULL, $language['code'], 'en' );
-                print "Settings for " . $language['native_name'] . " (" . $translated_name . ")";
-            }
+            $current_lang = qtranxf_getLanguageName();
+            print "Settings for " . $current_lang;
         }
     }
 
