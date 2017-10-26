@@ -3,7 +3,7 @@
  * Plugin Name: Push Occrp
  * Plugin URI:  https://github.com/pushoccrrp
  * Description: An export plugin for the Push mobile app ecosystem.
- * Version:	1.5.2
+ * Version:	1.5.3
  * Author:	Christopher Guess
  * Author URI:  https://www.tryandguess.com/
  * License:
@@ -341,12 +341,17 @@ function articles_for_args($args) {
 		while ( $post_query->have_posts() ) {
 			$post_query->the_post();
 			$post_data = array();
-
+			// wp_send_json( get_post() );
 			$post_data["headline"] = get_the_title();
 			$post_data["description"] = get_the_excerpt();
 			$post_data["body"] = get_the_content();
 			$post_data["author"] = get_the_author();
-			$post_data["publish_date"] = get_the_date("Ymd");
+
+			// Since some plugins screw with the date formatting, we do it manually
+			$post = get_post();
+			$timestamp = strtotime($post->post_date);
+			$post_data["publish_date"] = date("Ymd", $timestamp);
+			//$post_data["publish_date"] = get_the_date("Ymd");
 			$post_data["id"] = get_the_id();
             $post_data["language"] = "en-GB";
             $post_data["image_urls"] = array();
