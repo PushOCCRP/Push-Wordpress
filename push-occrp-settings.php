@@ -40,16 +40,11 @@ class PushMobileAppSettingsPage
     public function create_admin_page()
     {        
         // Set class property
-        printf("**************fsflsdjf***************<br>");
         $this->options = get_option( 'push_app_mobile_categories_option_group' );
-        print_r($this->options);
-        printf("**************fsflsdjf***************");
         ?>
         <div class="wrap">
             <h1>Push Mobile App</h1>
             <?php
-                printf($this->options);
-                printf("hahahahhaah");
                 // WPML: if the "all languages" choice is currently chosen, don't put any settings in.
                 // This will be added at some point, but right now it's a lot of extra work
                 if ( function_exists('icl_object_id') && apply_filters( 'wpml_current_language', NULL ) == 'all') {

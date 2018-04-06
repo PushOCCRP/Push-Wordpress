@@ -3,7 +3,7 @@
  * Plugin Name: Push Occrp
  * Plugin URI:  https://github.com/pushoccrrp
  * Description: An export plugin for the Push mobile app ecosystem.
- * Version:	1.5.3
+ * Version:	1.5.4
  * Author:	Christopher Guess
  * Author URI:  https://www.tryandguess.com/
  * License:
