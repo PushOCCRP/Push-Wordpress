@@ -40,11 +40,16 @@ class PushMobileAppSettingsPage
     public function create_admin_page()
     {        
         // Set class property
-        $this->options = get_option( 'disabled_categories' );
+        printf("**************fsflsdjf***************<br>");
+        $this->options = get_option( 'push_app_mobile_categories_option_group' );
+        print_r($this->options);
+        printf("**************fsflsdjf***************");
         ?>
         <div class="wrap">
             <h1>Push Mobile App</h1>
             <?php
+                printf($this->options);
+                printf("hahahahhaah");
                 // WPML: if the "all languages" choice is currently chosen, don't put any settings in.
                 // This will be added at some point, but right now it's a lot of extra work
                 if ( function_exists('icl_object_id') && apply_filters( 'wpml_current_language', NULL ) == 'all') {
@@ -71,22 +76,22 @@ class PushMobileAppSettingsPage
      */
     public function page_init()
     {   
-        register_setting(
+        register_setting(   
             'push_app_mobile_categories_option_group', // Option group
             'push_app_option_name', // Option name
-            array( $this, 'validate_sorting' ) // Sanitize
+            array('sanitize_callback' => array($this, 'validate_sorting')) // Sanitize
         );
 
         register_setting(
             'push_app_mobile_categories_option_group', // Option group
             'push_app_disabled_categories', // Option name
-            array( $this, 'validate_categories' ) // Sanitize
+            array('sanitize_callback' => array($this, 'validate_categories')) // Sanitize
         );
 
         register_setting(
             'push_app_mobile_categories_option_group', // Option group
             'push_app_disabled_post_types', // Option name
-            array( $this, 'validate_post_types' ) // Sanitize
+            array('sanitize_callback' => array($this, 'validate_post_types')) // Sanitize
         );
 
         add_settings_section(
@@ -147,17 +152,23 @@ class PushMobileAppSettingsPage
      */
     public function validate_categories( $input )
     {
-
         if(!isset($input)){
             $input = array();
         }
+
+        var_dump($input);
+
         // We make a copy of the input so that we can sanitize everything.
-        $input = array_map(function($value){
+        // $santized_input = array();
+        array_walk($input, function(&$value, $key){
             sanitize_text_field($value);
-        }, $input);
+        });
+        // $input = $sanitized_input;
+        var_dump($input);
+        //exit();
 
         $disabled_categories = get_option('push_app_disabled_categories');
-
+        
         if ( function_exists('icl_object_id')){
             $current_lang = apply_filters( 'wpml_current_language', NULL );
         
@@ -176,8 +187,10 @@ class PushMobileAppSettingsPage
             }
         
             $disabled_categories[$current_lang] = $input;
+        } else {
+            $disabled_categories = $input;
         }
-        
+
         return $disabled_categories;
     }
 
@@ -215,6 +228,8 @@ class PushMobileAppSettingsPage
             
             $disabled_post_types[$current_lang] = $input;
             return $disabled_post_types;
+        } else {
+            $disabled_post_types = $input;
         }
 
         // Validation should run against on all the inputs
@@ -254,6 +269,8 @@ class PushMobileAppSettingsPage
             }
             
             $sorting_type[$current_lang] = $input;
+        } else {
+            $sorting_type = $input;
         }
 
         // Validation should run against on all the inputs
@@ -321,9 +338,10 @@ class PushMobileAppSettingsPage
         foreach($categories as $category){
             $checked = "";
             
-            if(isset($disabled_categories) && $disabled_categories != false && array_key_exists($category->term_id, $disabled_categories)){
+            if(isset($disabled_categories) && is_array($disabled_categories) && array_key_exists(strval($category->term_id), $disabled_categories)){
                 $checked = "checked";
             }
+
             printf('<label>%s</label>&nbsp;&nbsp;', $category->name);
             printf(
                 '<input type="checkbox" id="title" name="push_app_disabled_categories[%s]" %s>',
@@ -373,7 +391,7 @@ class PushMobileAppSettingsPage
 
         foreach($post_types as $post_type){
             $checked = "";
-            if(isset($disabled_post_types) && $disabled_post_types != false && array_key_exists($post_type, $disabled_post_types)){
+            if(isset($disabled_post_types) && is_array($disabled_post_types) && array_key_exists($post_type, $disabled_post_types)){
                 $checked = "checked";
             }
 
